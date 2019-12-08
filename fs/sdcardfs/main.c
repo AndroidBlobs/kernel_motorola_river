@@ -22,6 +22,7 @@
 #include <linux/module.h>
 #include <linux/types.h>
 #include <linux/parser.h>
+#include <linux/xattr.h>
 
 enum {
 	Opt_fsuid,
@@ -239,6 +240,68 @@ EXPORT_SYMBOL_GPL(sdcardfs_super_list_lock);
 LIST_HEAD(sdcardfs_super_list);
 EXPORT_SYMBOL_GPL(sdcardfs_super_list);
 
+static int sdcardfs_set_xattr(const struct xattr_handler *handler,
+	struct dentry *dentry, struct inode *inode,
+	const char *name, const void *value, size_t size, int flags)
+{
+	int err;
+	struct dentry *lower_dentry;
+	struct inode *lower_inode;
+	struct path lower_path;
+	const struct cred *saved_cred = NULL;
+
+	/* save current_cred and override it */
+        saved_cred = override_fsids(SDCARDFS_SB(dentry->d_sb),SDCARDFS_I(inode)->data);
+        if (!saved_cred)
+             return -ENOMEM;
+	sdcardfs_get_lower_path(dentry, &lower_path);
+
+	lower_dentry = lower_path.dentry;
+	lower_inode = sdcardfs_lower_inode(inode);
+	err = vfs_setxattr(lower_dentry, name, value, size, flags);
+
+	sdcardfs_put_lower_path(dentry, &lower_path);
+        revert_fsids(saved_cred);
+	return err;
+}
+
+static int sdcardfs_get_xattr(const struct xattr_handler *handler,
+	struct dentry *dentry, struct inode *inode,
+	const char *name, void *value, size_t size)
+{
+	int err;
+	struct dentry *lower_dentry;
+	struct inode *lower_inode;
+	struct path lower_path;
+	const struct cred *saved_cred = NULL;
+
+	/* save current_cred and override it */
+        saved_cred = override_fsids(SDCARDFS_SB(dentry->d_sb),
+                                               SDCARDFS_I(inode)->data);
+	if (!saved_cred)
+             return -ENOMEM;
+        sdcardfs_get_lower_path(dentry, &lower_path);
+
+	lower_dentry = lower_path.dentry;
+	lower_inode = sdcardfs_lower_inode(inode);
+	err = vfs_getxattr(lower_dentry, name, value, size);
+
+	sdcardfs_put_lower_path(dentry, &lower_path);
+        revert_fsids(saved_cred);
+	return err;
+}
+
+static const struct xattr_handler sdcardfs_xattr_handler = {
+	.prefix = "",  /* match any name => handlers called with full name */
+	.get = sdcardfs_get_xattr,
+	.set = sdcardfs_set_xattr,
+};
+
+static const struct xattr_handler *sdcardfs_xattr_handlers[] = {
+	&sdcardfs_xattr_handler,
+	NULL,
+};
+
 /*
  * There is no need to lock the sdcardfs_super_info's rwsem as there is no
  * way anyone can have a reference to the superblock at this point in time.
@@ -274,6 +337,7 @@ static int sdcardfs_read_super(struct vfsmount *mnt, struct super_block *sb,
 		goto out;
 	}
 
+	sb->s_xattr = sdcardfs_xattr_handlers;
 	/* allocate superblock private data */
 	sb->s_fs_info = kzalloc(sizeof(struct sdcardfs_sb_info), GFP_KERNEL);
 	if (!SDCARDFS_SB(sb)) {
@@ -294,6 +358,13 @@ static int sdcardfs_read_super(struct vfsmount *mnt, struct super_block *sb,
 	lower_sb = lower_path.dentry->d_sb;
 	atomic_inc(&lower_sb->s_active);
 	sdcardfs_set_lower_super(sb, lower_sb);
+
+	sb->s_stack_depth = lower_sb->s_stack_depth + 1;
+	if (sb->s_stack_depth > FILESYSTEM_MAX_STACK_DEPTH) {
+		pr_err("sdcardfs: maximum fs stacking depth exceeded\n");
+		err = -EINVAL;
+		goto out_sput;
+	}
 
 	/* inherit maxbytes from lower file system */
 	sb->s_maxbytes = lower_sb->s_maxbytes;
@@ -356,6 +427,26 @@ static int sdcardfs_read_super(struct vfsmount *mnt, struct super_block *sb,
 	if (!silent)
 		pr_info("sdcardfs: mounted on top of %s type %s\n",
 				dev_name, lower_sb->s_type->name);
+
+#ifdef CONFIG_SDCARD_FS_DIR_WRITER
+	if (vfs_setxattr(lower_path.dentry,
+		SDCARDFS_XATTR_DWRITER_NAME,
+		CONFIG_SDCARD_FS_DIR_WRITER,
+		strlen(CONFIG_SDCARD_FS_DIR_WRITER), 0)) {
+		pr_warn("sdcardfs: failed to set %s\n",
+			SDCARDFS_XATTR_DWRITER_NAME);
+	}
+#endif
+#ifdef CONFIG_SDCARD_FS_PARTIAL_RELATIME
+	if (vfs_setxattr(lower_path.dentry,
+		SDCARDFS_XATTR_PARTIAL_RELATIME_NAME,
+		CONFIG_SDCARD_FS_PARTIAL_RELATIME,
+		strlen(CONFIG_SDCARD_FS_PARTIAL_RELATIME), 0)) {
+		pr_warn("sdcardfs: failed to set xattr %s\n",
+			SDCARDFS_XATTR_PARTIAL_RELATIME_NAME);
+	}
+#endif
+
 	goto out; /* all is well */
 
 	/* no longer needed: free_dentry_private_data(sb->s_root); */

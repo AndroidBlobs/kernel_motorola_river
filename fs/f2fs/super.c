@@ -830,7 +830,6 @@ static struct inode *f2fs_alloc_inode(struct super_block *sb)
 
 	/* Initialize f2fs-specific inode info */
 	atomic_set(&fi->dirty_pages, 0);
-	fi->i_current_depth = 1;
 	init_rwsem(&fi->i_sem);
 	INIT_LIST_HEAD(&fi->dirty_list);
 	INIT_LIST_HEAD(&fi->gdirty_list);
@@ -2327,8 +2326,12 @@ static int init_percpu_info(struct f2fs_sb_info *sbi)
 	if (err)
 		return err;
 
-	return percpu_counter_init(&sbi->total_valid_inode_count, 0,
+	err = percpu_counter_init(&sbi->total_valid_inode_count, 0,
 								GFP_KERNEL);
+	if (err)
+		percpu_counter_destroy(&sbi->alloc_valid_block_count);
+
+	return err;
 }
 
 #ifdef CONFIG_BLK_DEV_ZONED
@@ -2717,6 +2720,7 @@ try_onemore:
 	/* init f2fs-specific super block info */
 	sbi->valid_super_block = valid_super_block;
 	mutex_init(&sbi->gc_mutex);
+	mutex_init(&sbi->writepages);
 	mutex_init(&sbi->cp_mutex);
 	init_rwsem(&sbi->node_write);
 	init_rwsem(&sbi->node_change);
@@ -2738,7 +2742,7 @@ try_onemore:
 					GFP_KERNEL);
 		if (!sbi->write_io[i]) {
 			err = -ENOMEM;
-			goto free_options;
+			goto free_bio_info;
 		}
 
 		for (j = HOT; j < n; j++) {
@@ -3072,6 +3076,12 @@ static void destroy_inodecache(void)
 static int __init init_f2fs_fs(void)
 {
 	int err;
+
+	if (PAGE_SIZE != F2FS_BLKSIZE) {
+		printk("F2FS not supported on PAGE_SIZE(%lu) != %d\n",
+				PAGE_SIZE, F2FS_BLKSIZE);
+		return -EINVAL;
+	}
 
 	f2fs_build_trace_ios();
 
