@@ -1781,7 +1781,7 @@ source "mm/Kconfig"
 
 choice
 	prompt "Virtual Memory Reclaim"
-	default ENABLE_VMALLOC_SAVING
+	default NO_VM_RECLAIM
 	help
 	  Select the method of reclaiming virtual memory
 
@@ -2171,6 +2171,17 @@ config AUTO_ZRELADDR
 	  will be determined at run-time by masking the current IP with
 	  0xf8000000. This assumes the zImage being placed in the first 128MB
 	  from start of memory.
+
+config ARM_DECOMPRESSOR_LIMIT
+        hex "Limit the decompressor memory area"
+        default 0x10000000
+        help
+          Allows overriding of the memory size that decompressor maps with
+          read, write and execute permissions to avoid speculative prefetch.
+
+          By default ARM_DECOMPRESSOR_LIMIT maps first 1GB of memory
+          with read, write and execute permissions and reset of the memory
+          as strongly ordered.
 
 config EFI_STUB
 	bool
