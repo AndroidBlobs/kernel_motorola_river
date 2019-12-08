@@ -155,6 +155,11 @@ static void sdhci_dumpregs(struct sdhci_host *host)
 		host->ops->dump_vendor_regs(host);
 	sdhci_dump_state(host);
 	pr_info(DRIVER_NAME ": ===========================================\n");
+#ifdef CONFIG_SDHCI_DUMPREG_DEBUG_PANIC
+         if (mmc_card_mmc(host->mmc->card))
+                 BUG_ON(true);
+#endif
+
 }
 
 /*****************************************************************************\
@@ -1824,7 +1829,6 @@ static void sdhci_request(struct mmc_host *mmc, struct mmc_request *mrq)
 		if (mrq->data)
 			mrq->data->error = -EIO;
 		host->mrq = NULL;
-		sdhci_dumpregs(host);
 		mmc_request_done(host->mmc, mrq);
 		return;
 	}
