@@ -47,7 +47,7 @@
 #define THERMAL_WEIGHT_DEFAULT 0
 
 /* Max sensors that can be used for a single virtual thermalzone */
-#define THERMAL_MAX_VIRT_SENSORS 10
+#define THERMAL_MAX_VIRT_SENSORS 8
 
 /* use value, which < 0K, to indicate an invalid/uninitialized temperature */
 #define THERMAL_TEMP_INVALID	-274000
@@ -239,6 +239,7 @@ struct thermal_zone_device {
 	int passive_delay;
 	int polling_delay;
 	int temperature;
+	int alarm_temperature;
 	int last_temperature;
 	int emul_temperature;
 	int passive;
