@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017-2018, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2017, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -64,19 +64,25 @@ static const struct virtual_sensor_data qti_virtual_sensors[] = {
 				"cpu1-gold-usr"},
 		.logic = VIRT_MAXIMUM,
 	},
+        {
+                .virt_zone_name = "hexa-cpu-max-step",
+                .num_sensors = 6,
+                .sensor_names = {"apc1-cpu0-usr",
+                                "apc1-cpu1-usr",
+                                "apc1-cpu2-usr",
+                                "apc1-cpu3-usr",
+                                "cpuss0-usr",
+                                "cpuss1-usr"},
+                                .logic = VIRT_MAXIMUM,
+        },
 	{
-		.virt_zone_name = "deca-cpu-max-step",
-		.num_sensors = 10,
-		.sensor_names = {"apc0-cpu0-usr",
-				"apc0-cpu1-usr",
-				"apc0-cpu2-usr",
-				"apc0-cpu3-usr",
-				"apc0-l2-usr",
-				"apc1-cpu0-usr",
+		.virt_zone_name = "penta-cpu-max-step",
+		.num_sensors = 5,
+		.sensor_names = {"apc1-cpu0-usr",
 				"apc1-cpu1-usr",
 				"apc1-cpu2-usr",
 				"apc1-cpu3-usr",
-				"apc1-l2-usr"},
+				"cpuss-usr"},
 		.logic = VIRT_MAXIMUM,
 	},
 	{
@@ -89,27 +95,6 @@ static const struct virtual_sensor_data qti_virtual_sensors[] = {
 				"apc1-mhm-usr",
 				"apc1-l2-usr",
 				"cpuss0-usr"},
-		.logic = VIRT_MAXIMUM,
-	},
-	{
-		.virt_zone_name = "hexa-cpu-max-step",
-		.num_sensors = 6,
-		.sensor_names = {"apc1-cpu0-usr",
-				"apc1-cpu1-usr",
-				"apc1-cpu2-usr",
-				"apc1-cpu3-usr",
-				"cpuss0-usr",
-				"cpuss1-usr"},
-		.logic = VIRT_MAXIMUM,
-	},
-	{
-		.virt_zone_name = "penta-cpu-max-step",
-		.num_sensors = 5,
-		.sensor_names = {"apc1-cpu0-usr",
-				"apc1-cpu1-usr",
-				"apc1-cpu2-usr",
-				"apc1-cpu3-usr",
-				"cpuss-usr"},
 		.logic = VIRT_MAXIMUM,
 	},
 };
