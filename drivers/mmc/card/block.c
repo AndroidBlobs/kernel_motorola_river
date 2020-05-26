@@ -1211,6 +1211,10 @@ static int mmc_blk_ioctl_cmd(struct block_device *bdev,
 		goto cmd_done;
 	}
 
+	if (idata->ic.opcode == MMC_FFU_INVOKE_OP) {
+		err = mmc_ffu_invoke(card, idata->buf);
+		goto cmd_done;
+	}
 	mmc_get_card(card);
 
 	if (mmc_card_cmdq(card)) {
@@ -4769,6 +4773,8 @@ static const struct mmc_fixup blk_fixups[] =
 	MMC_FIXUP("SEM04G", 0x45, CID_OEMID_ANY, add_quirk_mmc,
 		  MMC_QUIRK_INAND_DATA_TIMEOUT),
 
+	MMC_FIXUP(CID_NAME_ANY, CID_MANFID_MICRON, CID_OEMID_ANY, add_quirk_mmc,
+		  MMC_QUIRK_BROKEN_CLK_GATING),
 	END_FIXUP
 };
 
