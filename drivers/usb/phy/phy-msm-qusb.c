@@ -145,6 +145,10 @@ struct qusb_phy {
 	int			tune2_efuse_bit_pos;
 	int			tune2_efuse_num_of_bits;
 	int			tune2_efuse_correction;
+#ifdef CONFIG_USB_PHY_TUNE_FACTORY_OVERRIDE
+	u32			tune_factory_override;
+#endif
+	u32			tune2_host_override;
 
 	bool			power_enabled;
 	bool			cable_connected;
@@ -516,6 +520,33 @@ static int qusb_phy_init(struct usb_phy *phy)
 		pr_debug("%s(): Programming TUNE2 parameter as:%x\n", __func__,
 				qphy->tune2_val);
 		writel_relaxed(qphy->tune2_val,
+				qphy->base + QUSB2PHY_PORT_TUNE2);
+	}
+
+#ifdef CONFIG_USB_PHY_TUNE_FACTORY_OVERRIDE
+	if (qphy->tune_factory_override) {
+		pr_debug("%s():Factory TUNEX val:0x%x %x %x %x\n", __func__,
+				qphy->tune_factory_override & 0xFF,
+				(qphy->tune_factory_override >> 8) & 0xFF,
+				(qphy->tune_factory_override >> 16) & 0xFF,
+				(qphy->tune_factory_override >> 24) & 0xFF);
+		writel_relaxed(qphy->tune_factory_override & 0xFF,
+				qphy->base + QUSB2PHY_PORT_TUNE1);
+		writel_relaxed((qphy->tune_factory_override >> 8) & 0xFF,
+				qphy->base + QUSB2PHY_PORT_TUNE2);
+		writel_relaxed((qphy->tune_factory_override >> 16) & 0xFF,
+				qphy->base + QUSB2PHY_PORT_TUNE3);
+		writel_relaxed((qphy->tune_factory_override >> 24) & 0xFF,
+				qphy->base + QUSB2PHY_PORT_TUNE4);
+	}
+#endif
+
+	if (!tune2 &&
+	    qphy->tune2_host_override &&
+	    (qphy->phy.flags & PHY_HOST_MODE)) {
+		pr_debug("%s(): Host TUNE2 override value:%x\n", __func__,
+				qphy->tune2_host_override);
+		writel_relaxed(qphy->tune2_host_override,
 				qphy->base + QUSB2PHY_PORT_TUNE2);
 	}
 
@@ -964,6 +995,15 @@ static int qusb_phy_probe(struct platform_device *pdev)
 			}
 		}
 	}
+
+#ifdef CONFIG_USB_PHY_TUNE_FACTORY_OVERRIDE
+	of_property_read_u32(dev->of_node,
+			"qcom,tune-factory-override",
+			&qphy->tune_factory_override);
+#endif
+	of_property_read_u32(dev->of_node,
+			"qcom,tune2-host-override",
+			&qphy->tune2_host_override);
 
 	res = platform_get_resource_byname(pdev, IORESOURCE_MEM,
 							"ref_clk_addr");
