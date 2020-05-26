@@ -890,7 +890,6 @@ static int pil_load_seg(struct pil_desc *desc, struct pil_seg *seg)
 			pil_err(desc, "Blob%u failed verification(rc:%d)\n",
 								num, ret);
 	}
-
 	return ret;
 }
 
