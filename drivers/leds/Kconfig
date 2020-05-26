@@ -548,6 +548,21 @@ config LEDS_LM355x
 	  This option enables support for LEDs connected to LM355x.
 	  LM355x includes Torch, Flash and Indicator functions.
 
+config LEDS_SM5350
+	tristate "LED support for SM5350"
+	depends on LEDS_CLASS
+	depends on I2C
+	help
+	  This option enables support for LEDs connected to SM5350.
+
+config LEDS_KTD3136
+	tristate "LCD Backlight driver for KTD3136"
+	depends on LEDS_CLASS
+	depends on I2C
+	help
+	  This option enables support for the LCD backlight using
+	  KTD3136.
+
 config LEDS_OT200
 	tristate "LED support for the Bachmann OT200"
 	depends on LEDS_CLASS && HAS_IOMEM && (X86_32 || COMPILE_TEST)
@@ -667,6 +682,15 @@ config LEDS_MLXCPLD
 	help
 	  This option enabled support for the LEDs on the Mellanox
 	  boards. Say Y to enabled these.
+
+config LEDS_ATC
+        tristate "Support for PMIC ATC LED"
+        depends on LEDS_CLASS && SPMI
+        help
+          This driver supports the ATC led functionality of Qualcomm PNP PMIC.
+          Creates standard LED interface for the auto trickle charge indication
+          LED. SPMI register write is used to access PMIC control register.
+          Device tree can be used to adjust control register address used.
 
 config LEDS_QPNP
 	tristate "Support for QPNP LEDs"
